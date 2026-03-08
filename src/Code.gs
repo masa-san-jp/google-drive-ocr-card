@@ -19,6 +19,56 @@ const CONFIG = {
 };
 
 /**
+ * スプレッドシートに名刺データを1行追記する関数
+ * @param {Sheet} sheet - メインシート
+ * @param {Object} data - 抽出された名刺データ
+ * @param {File} file - Google Driveファイルオブジェクト
+ */
+function appendCardRow(sheet, data, file) {
+  sheet.appendRow([
+    new Date(),                      // A: 登録年月日
+    data.name || "",                 // B: 氏名
+    data.company || "",              // C: 会社名
+    data.department_title || "",     // D: 部署・役職
+    data.phone || "",                // E: 電話番号
+    data.email || "",                // F: メールアドレス
+    data.address || "",              // G: 住所
+    data.website || "",              // H: Webサイト
+    "処理済み",                       // I: OCRステータス
+    file.getUrl(),                   // J: 画像リンク
+    "",                              // K: 備考（初期値は空）
+    data.raw_text || ""              // L: OCR生テキスト
+  ]);
+}
+
+/**
+ * メインシートの初期化（ヘッダー行の作成と列幅の設定）
+ * @param {Sheet} sheet - メインシート
+ */
+function initSheet(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "登録年月日", "氏名", "会社名", "部署・役職",
+      "電話番号", "メールアドレス", "住所", "Webサイト",
+      "OCRステータス", "画像リンク", "備考", "OCR生テキスト"
+    ]);
+    sheet.setFrozenRows(1);          // 1行目を固定
+    sheet.setColumnWidth(1, 150);    // 登録年月日幅
+    sheet.setColumnWidth(2, 120);    // 氏名幅
+    sheet.setColumnWidth(3, 200);    // 会社名幅
+    sheet.setColumnWidth(4, 150);    // 部署・役職幅
+    sheet.setColumnWidth(5, 130);    // 電話番号幅
+    sheet.setColumnWidth(6, 200);    // メールアドレス幅
+    sheet.setColumnWidth(7, 250);    // 住所幅
+    sheet.setColumnWidth(8, 200);    // Webサイト幅
+    sheet.setColumnWidth(9, 100);    // OCRステータス幅
+    sheet.setColumnWidth(10, 300);   // 画像リンク幅
+    sheet.setColumnWidth(11, 150);   // 備考幅
+    sheet.setColumnWidth(12, 400);   // OCR生テキスト幅
+  }
+}
+
+/**
  * 処理のメイン関数：これを定期実行（トリガー）に設定します。
  */
 function processBusinessCards() {
@@ -50,27 +100,8 @@ function processBusinessCards() {
     return;
   }
 
-  // スプレッドシートが空の場合、1行目にヘッダーを作成する
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      "登録年月日", "氏名", "会社名", "部署・役職",
-      "電話番号", "メールアドレス", "住所", "Webサイト",
-      "OCRステータス", "画像リンク", "備考", "OCR生テキスト"
-    ]);
-    sheet.setFrozenRows(1);          // 1行目を固定
-    sheet.setColumnWidth(1, 150);    // 登録年月日幅
-    sheet.setColumnWidth(2, 120);    // 氏名幅
-    sheet.setColumnWidth(3, 200);    // 会社名幅
-    sheet.setColumnWidth(4, 150);    // 部署・役職幅
-    sheet.setColumnWidth(5, 130);    // 電話番号幅
-    sheet.setColumnWidth(6, 200);    // メールアドレス幅
-    sheet.setColumnWidth(7, 250);    // 住所幅
-    sheet.setColumnWidth(8, 200);    // Webサイト幅
-    sheet.setColumnWidth(9, 100);    // OCRステータス幅
-    sheet.setColumnWidth(10, 300);   // 画像リンク幅
-    sheet.setColumnWidth(11, 150);   // 備考幅
-    sheet.setColumnWidth(12, 400);   // OCR生テキスト幅
-  }
+  // メインシートの初期化
+  initSheet(sheet);
 
   // 01_未処理フォルダ内のすべてのファイルを取得
   const files = inputFolder.getFiles();
@@ -108,31 +139,25 @@ function processBusinessCards() {
         // ステップ1: 02_OCR中フォルダに移動（ロック機構・重複処理防止）
         file.moveTo(ocrInProgressFolder);
 
+        // HEIC/HEIF形式の画像は処理対象外（GASでの変換が困難）
+        if (mimeType === 'image/heic' || mimeType === 'image/heif') {
+          const heicMsg = `HEIC/HEIF形式はサポート対象外です: ${file.getName()}`;
+          console.log(heicMsg);
+          writeLog(logSheet, heicMsg, "INFO", processedCount, "スマートフォンのカメラ設定を「互換性優先（JPEG）」に変更してください");
+          file.moveTo(reviewFolder);
+          continue;
+        }
+
         // 画像データをBase64形式に変換（APIに送信用）
         const blob = file.getBlob();
         const base64Image = Utilities.base64Encode(blob.getBytes());
-        // HEIC等の特殊フォーマットはJPEGとして扱わせる
-        const apiMimeType = (mimeType === 'image/heic') ? 'image/jpeg' : mimeType;
 
         // Gemini APIを呼び出し、名刺の情報をJSON形式で抽出
-        const extractedData = extractWithGemini(base64Image, apiMimeType, apiKey);
+        const extractedData = extractWithGemini(base64Image, mimeType, apiKey);
 
         if (extractedData) {
           // スプレッドシートに抽出データを1行追記（12列スキーマ）
-          sheet.appendRow([
-            new Date(),                            // A: 登録年月日
-            extractedData.name || "",              // B: 氏名
-            extractedData.company || "",           // C: 会社名
-            extractedData.department_title || "",  // D: 部署・役職
-            extractedData.phone || "",             // E: 電話番号
-            extractedData.email || "",             // F: メールアドレス
-            extractedData.address || "",           // G: 住所
-            extractedData.website || "",           // H: Webサイト
-            "処理済み",                             // I: OCRステータス
-            file.getUrl(),                         // J: 画像リンク
-            "",                                    // K: 備考（初期値は空）
-            extractedData.raw_text || ""           // L: OCR生テキスト
-          ]);
+          appendCardRow(sheet, extractedData, file);
 
           // ファイル名の変更処理
           const safeCompany = extractedData.company || "不明";
