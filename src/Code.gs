@@ -42,22 +42,26 @@ function processBusinessCards() {
   
   // フォルダ内のすべてのファイルを取得
   const files = inputFolder.getFiles();
+  // 画像ファイル（jpg/png/tiff/heif）およびPDFを処理対象とする
+  const SUPPORTED_MIME_TYPES = [
+    'image/jpeg', 'image/png', 'image/tiff', 'image/heic', 'image/heif',
+    'application/pdf'
+  ];
   let processedCount = 0;
   
   while (files.hasNext()) {
     const file = files.next();
     const mimeType = file.getMimeType();
     
-    // 画像ファイルのみを処理対象とする
-    if (mimeType.includes('image/')) {
+    if (SUPPORTED_MIME_TYPES.includes(mimeType)) {
       try {
         console.log(`処理開始: ${file.getName()}`);
         
-        // 画像データをBase64形式に変換（APIに送信用）
+        // ファイルデータをBase64形式に変換（APIに送信用）
         const blob = file.getBlob();
         const base64Image = Utilities.base64Encode(blob.getBytes());
-        // HEIC等の特殊フォーマットはJPEGとして扱わせる
-        const apiMimeType = (mimeType === 'image/heic') ? 'image/jpeg' : mimeType; 
+        // HEIC/HEIF等の特殊フォーマットはJPEGとして扱わせる
+        const apiMimeType = (mimeType === 'image/heic' || mimeType === 'image/heif') ? 'image/jpeg' : mimeType; 
         
         // Gemini APIを呼び出し、名刺の情報をJSON形式で抽出
         const extractedData = extractWithGemini(base64Image, apiMimeType);
@@ -94,7 +98,7 @@ function processBusinessCards() {
         console.error(`エラー発生ファイル: ${file.getName()}, エラー詳細: ${e.message}`);
       }
     } else {
-      console.log(`画像ではないファイルのためスキップしました: ${file.getName()}`);
+      console.log(`対応外のファイル形式のためスキップしました: ${file.getName()} (${mimeType})`);
     }
   }
   
