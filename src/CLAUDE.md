@@ -50,7 +50,19 @@ GASではロガーが唯一のデバッグ手段のため `console.log` / `conso
 - モデル: `gemini-1.5-flash`（コスト優先）
 - `responseMimeType: "application/json"` を必ず指定してJSON強制
 - `muteHttpExceptions: true` でHTTPエラーをキャッチ可能にする
-- HEIC 画像は `image/jpeg` として送信する
+- HEIC / HEIF 画像は `image/jpeg` として送信する
+- PDF は `application/pdf` のままで送信する
+
+## 対応ファイル形式
+
+| 形式 | MIME タイプ | Gemini への送信 MIME タイプ |
+|---|---|---|
+| JPEG | `image/jpeg` | `image/jpeg` |
+| PNG | `image/png` | `image/png` |
+| TIFF | `image/tiff` | `image/tiff` |
+| HEIC | `image/heic` | `image/jpeg` |
+| HEIF | `image/heif` | `image/jpeg` |
+| PDF | `application/pdf` | `application/pdf` |
 
 ## ファイル命名・フォルダ構成
 
