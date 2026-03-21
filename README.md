@@ -116,6 +116,14 @@ google-drive-ocr-card/
 | ❌ 未対応 | 抽出失敗記録 | OCR 抽出失敗時のスプレッドシート記録とエラーフォルダへの退避が未実装 |
 | ❌ 未対応 | 関数分割 | `processBusinessCards` の責務過多（100 行超の単一関数） |
 
+## 将来展望
+
+本プロジェクトのアーキテクチャ（Google Drive → GAS → Gemini API → Google Sheets）をベースに、**経費精算における証憑書類（レシート・領収書など）の OCR 自動化**への展開を検討しています。
+
+撮影した領収書を Google Drive にアップロードするだけで、金額・日付・店舗名などを自動抽出してスプレッドシートに記録し、立替経費精算の入力作業を削減することを目指します。
+
+- 関連リポジトリ（開発中）：[masa-san-jp/receipt-OCR-to-sheets](https://github.com/masa-san-jp/receipt-OCR-to-sheets)
+
 ---
 
 <a id="english"></a>
@@ -235,6 +243,14 @@ Two code reviews have been conducted (see `docs/code_review.md` and `docs/review
 | ❌ Pending | Performance | `appendRow` called per card — should be batched with `setValues` |
 | ❌ Pending | Failure logging | OCR failures not recorded in the spreadsheet; failed files not moved to an error folder |
 | ❌ Pending | Refactoring | `processBusinessCards` has 9+ responsibilities in a single 100-line function |
+
+## Future Plans
+
+Building on the architecture of this project (Google Drive → GAS → Gemini API → Google Sheets), we are planning to expand into **automated OCR for accounting receipts and expense documents** (receipts, invoices, etc.).
+
+The goal is to let users upload a photo of a receipt to Google Drive and have the system automatically extract the amount, date, vendor name, and other fields into a spreadsheet — reducing the manual data entry burden for expense reimbursement workflows.
+
+- Related repository (in development): [masa-san-jp/receipt-OCR-to-sheets](https://github.com/masa-san-jp/receipt-OCR-to-sheets)
 
 ## License
 
