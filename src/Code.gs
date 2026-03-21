@@ -132,7 +132,7 @@ function extractWithGemini(base64Data, mimeType) {
     throw new Error("APIキーが設定されていません。GASのプロジェクト設定から「スクリプトプロパティ」に GEMINI_API_KEY を登録してください。");
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
   const isPdf = mimeType === 'application/pdf';
 
   // AIへの指示（PDFは配列で複数件返すことを強制、画像は単一オブジェクト）
