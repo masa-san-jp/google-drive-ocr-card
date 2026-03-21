@@ -108,10 +108,10 @@ google-drive-ocr-card/
 | ✅ 対応済み | エラー継続 | ループ内 try-catch で1件の失敗が全体を止めない設計 |
 | 🔄 部分対応 | HEIC/HEIF | `image/heif` も処理対象に追加済み（ただし MIME タイプ変換のみ、バイナリ変換は未実装） |
 | ❌ 未対応 | エラー処理 | エラーファイルが入力フォルダに残り続ける無限再処理問題 |
-| ❌ 未対応 | タイムアウト | 実行時間上限（5 分ガード）の安全装置が未実装 |
-| ❌ 未対応 | 処理件数上限 | `MAX_FILES_PER_RUN` による上限制御が未実装 |
+| ✅ 対応済み | タイムアウト | 実行時間上限（5 分ガード）の安全装置を実装済み |
+| ✅ 対応済み | 処理件数上限 | `MAX_FILES_PER_RUN`（デフォルト 10 件）による上限制御を実装済み |
 | ❌ 未対応 | 設計書整合 | 設計仕様書（7 モジュール・4 フォルダ構成）と実装（3 関数・2 フォルダ）の乖離 |
-| ❌ 未対応 | テスト | ユニットテストが存在しない |
+| ✅ 対応済み | テスト | Jest によるユニットテストを追加（タイムアウト・処理件数上限・sanitizeFileName 等） |
 | ❌ 未対応 | パフォーマンス | `appendRow` 逐次実行（一括書き込みへの移行が必要） |
 | ❌ 未対応 | 抽出失敗記録 | OCR 抽出失敗時のスプレッドシート記録とエラーフォルダへの退避が未実装 |
 | ❌ 未対応 | 関数分割 | `processBusinessCards` の責務過多（100 行超の単一関数） |
@@ -236,10 +236,10 @@ Two code reviews have been conducted (see `docs/code_review.md` and `docs/review
 | ✅ Done | Error resilience | Per-file try-catch prevents one failure from stopping the whole batch |
 | 🔄 Partial | HEIC/HEIF | `image/heif` added as a supported type; MIME label is changed to JPEG but no actual binary conversion |
 | ❌ Pending | Error handling | Failed files remain in the input folder and are retried indefinitely |
-| ❌ Pending | Timeout guard | No 5-minute safety cut-off before GAS's 6-minute execution limit |
-| ❌ Pending | File count limit | `MAX_FILES_PER_RUN` cap not implemented |
+| ✅ Done | Timeout guard | 5-minute safety cut-off before GAS's 6-minute execution limit |
+| ✅ Done | File count limit | `MAX_FILES_PER_RUN` cap (default: 10 files) implemented |
 | ❌ Pending | Design alignment | Gap between spec (7 modules, 4 folders) and implementation (3 functions, 2 folders) |
-| ❌ Pending | Tests | No unit tests exist |
+| ✅ Done | Tests | Jest unit tests added (timeout guard, file count limit, sanitizeFileName, etc.) |
 | ❌ Pending | Performance | `appendRow` called per card — should be batched with `setValues` |
 | ❌ Pending | Failure logging | OCR failures not recorded in the spreadsheet; failed files not moved to an error folder |
 | ❌ Pending | Refactoring | `processBusinessCards` has 9+ responsibilities in a single 100-line function |

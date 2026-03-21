@@ -10,9 +10,13 @@ const CONFIG = {
   FOLDER_ID_INPUT: "ここに名刺スキャン用フォルダのIDを貼り付け",
   FOLDER_ID_PROCESSED: "ここに処理済み名刺フォルダのIDを貼り付け",
   SPREADSHEET_ID: "ここにスプレッドシートのIDを貼り付け",
-  SHEET_NAME: "シート1" // スプレッドシートのタブ名（デフォルトは「シート1」）
-  
-  // 2. Gemini APIの設定はGASの「スクリプトプロパティ」から読み込みます
+  SHEET_NAME: "シート1", // スプレッドシートのタブ名（デフォルトは「シート1」）
+
+  // 2. 処理制限の設定
+  TIMEOUT_MS: 5 * 60 * 1000,  // タイムアウト: 5分（GAS上限6分に対する安全マージン）
+  MAX_FILES_PER_RUN: 10,       // 1回のトリガーで処理する最大ファイル数
+
+  // 3. Gemini APIの設定はGASの「スクリプトプロパティ」から読み込みます
   // (ここに直書きしないでください: セキュリティ対策)
 };
 
@@ -56,8 +60,22 @@ function processBusinessCards() {
     'application/pdf'
   ];
   let extractedCardCount = 0;
-  
+  let processedFileCount = 0;
+  const startTime = new Date().getTime();
+
   while (files.hasNext()) {
+    // タイムアウト安全装置: GAS実行時間上限（6分）を超える前にループを中断
+    if (new Date().getTime() - startTime > CONFIG.TIMEOUT_MS) {
+      console.log("タイムアウト安全装置発動。残りのファイルは次回トリガーで処理します。");
+      break;
+    }
+
+    // 処理件数上限チェック: 1回の実行で処理するファイル数を制限
+    if (processedFileCount >= CONFIG.MAX_FILES_PER_RUN) {
+      console.log(`処理件数上限（${CONFIG.MAX_FILES_PER_RUN}件）に到達。残りのファイルは次回トリガーで処理します。`);
+      break;
+    }
+
     const file = files.next();
     const mimeType = file.getMimeType();
     
@@ -104,6 +122,7 @@ function processBusinessCards() {
           // 処理済みフォルダにファイルを移動（スキャンフォルダから消える）
           file.moveTo(processedFolder);
           
+          processedFileCount++;
           console.log(`処理完了: ${newName} (${fileTypeLabel}, 抽出件数: ${extractedList.length})`);
         } else {
           console.log(`抽出結果が空のためスキップ: ${file.getName()}`);
