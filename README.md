@@ -4,7 +4,7 @@
 
 ## 概要
 
-スマートフォンの Google Drive アプリで名刺を撮影してフォルダにアップロードすると、定期実行される GAS スクリプトが Gemini API（`gemini-1.5-flash`）を使って名刺情報を自動抽出し、Google スプレッドシートに登録します。
+スマートフォンの Google Drive アプリで名刺を撮影してフォルダにアップロードすると、定期実行される GAS スクリプトが Gemini API（`gemini-2.5-flash-lite`）を使って名刺情報を自動抽出し、Google スプレッドシートに登録します。
 
 ```
 📱 名刺を撮影して Google Drive にアップロード
