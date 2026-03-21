@@ -23,7 +23,7 @@
 | 層 | 技術 |
 |---|---|
 | Runtime | Google Apps Script (V8) |
-| AI / OCR | Gemini API `gemini-1.5-flash` |
+| AI / OCR | Gemini API `gemini-2.5-flash-lite` |
 | Storage | Google Drive + Google Sheets |
 
 ## 主な機能
