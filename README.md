@@ -39,16 +39,22 @@
 
 ## スプレッドシートの列構成
 
-| 列 | フィールド |
-|---|---|
-| A | 処理日時 |
-| B | 会社名 |
-| C | 部署・役職 |
-| D | 氏名 |
-| E | メールアドレス |
-| F | 電話番号 |
-| G | 住所 |
-| H | 画像 URL |
+| 列 | フィールド | 説明 |
+|---|---|---|
+| A | 処理日時 | GAS が処理した日時 |
+| B | 会社名 | OCR 抽出値 |
+| C | 部署・役職 | OCR 抽出値 |
+| D | 氏名 | OCR 抽出値 |
+| E | メールアドレス | OCR 抽出値 |
+| F | 電話番号 | OCR 抽出値 |
+| G | 住所 | OCR 抽出値 |
+| H | 画像 URL | Drive ファイルの URL |
+| I | ファイル ID | Drive ファイルの一意 ID |
+| J | 元ファイル名 | 処理前のオリジナルファイル名 |
+| K | ソースアカウント | ファイルに関連付けられた Google アカウント（※制約あり） |
+| L | カード番号 | 1 ファイル内での名刺の連番（1 始まり） |
+
+> **ソースアカウントの制約**: マイドライブの場合はファイルオーナーのメールアドレスを取得します。共有ドライブの場合はファイルを共有したユーザーのアドレスを取得しますが、実際のアップロード者と一致しない場合があります。取得できない場合は「取得不可」と表示されます。
 
 ## ディレクトリ構成
 
@@ -167,16 +173,22 @@ Take a photo of a business card with your smartphone, upload it to a Google Driv
 
 ## Spreadsheet Column Layout
 
-| Column | Field |
-|---|---|
-| A | Processed date/time |
-| B | Company name |
-| C | Department / Title |
-| D | Full name |
-| E | Email address |
-| F | Phone number |
-| G | Address |
-| H | Image URL |
+| Column | Field | Description |
+|---|---|---|
+| A | Processed date/time | Timestamp when GAS processed the file |
+| B | Company name | OCR-extracted value |
+| C | Department / Title | OCR-extracted value |
+| D | Full name | OCR-extracted value |
+| E | Email address | OCR-extracted value |
+| F | Phone number | OCR-extracted value |
+| G | Address | OCR-extracted value |
+| H | Image URL | Drive file URL |
+| I | File ID | Unique Drive file ID |
+| J | Original filename | Filename before processing |
+| K | Source account | Google account linked to the file (see note below) |
+| L | Card number | Sequential card number within the file (1-based) |
+
+> **Source account note**: For files in My Drive, this is the file owner's email address. For shared drives, it is the email of the user who shared the file, which may not be the actual uploader. Displays "取得不可" (unavailable) when the account cannot be retrieved.
 
 ## Directory Structure
 

@@ -16,13 +16,14 @@ let mockSheetRows = [];
 let mockConsoleLog = [];
 let mockConsoleError = [];
 
-function createMockFile(name, mimeType, ocrResult) {
+function createMockFile(name, mimeType, ocrResult, ownerEmail) {
   return {
     getName: () => name,
     getMimeType: () => mimeType,
     getBlob: () => ({ getBytes: () => [1, 2, 3] }),
     getUrl: () => `https://drive.google.com/file/d/mock_${name}`,
     getId: () => `id_${name}`,
+    getOwner: () => ownerEmail !== null ? { getEmail: () => ownerEmail || 'owner@example.com' } : null,
     setName: jest.fn(),
     moveTo: jest.fn(),
     _ocrResult: ocrResult || { company: 'テスト株式会社', name: 'テスト 太郎' },
@@ -105,6 +106,7 @@ function loadCodeGs() {
     ${code
       .replace(/^const CONFIG/m, 'global.CONFIG')
       .replace(/^function sanitizeFileName/m, 'global.sanitizeFileName = function sanitizeFileName')
+      .replace(/^function getFileMetadata/m, 'global.getFileMetadata = function getFileMetadata')
       .replace(/^function normalizeCardRecord/m, 'global.normalizeCardRecord = function normalizeCardRecord')
       .replace(/^function processBusinessCards/m, 'global.processBusinessCards = function processBusinessCards')
       .replace(/^function extractWithGemini/m, 'global.extractWithGemini = function extractWithGemini')
@@ -395,23 +397,24 @@ describe('processBusinessCards - 複数名刺バッチ書き込み', () => {
     expect(mockSheetRows[2][1]).toBe('C社');
   });
 
-  test('バッチ書き込みにトラッキングカラム（fileId, 元ファイル名, カード番号）が含まれる', () => {
+  test('バッチ書き込みにトラッキングカラム（fileId, 元ファイル名, ソースアカウント, カード番号）が含まれる', () => {
     const twoCards = [
       { company: 'X社', name: '山田 一郎' },
       { company: 'Y社', name: '山田 二郎' },
     ];
-    mockFiles = [createMockFile('cards.pdf', 'application/pdf', twoCards)];
+    mockFiles = [createMockFile('cards.pdf', 'application/pdf', twoCards, 'uploader@example.com')];
     const { restoreConsole: rc } = setupGlobalMocks();
     restoreConsole = rc;
     loadCodeGs();
 
     global.processBusinessCards();
 
-    // カラム8=fileId, カラム9=元ファイル名, カラム10=カード番号（0始まり配列）
-    expect(mockSheetRows[0][8]).toBe('id_cards.pdf');    // fileId
-    expect(mockSheetRows[0][9]).toBe('cards.pdf');        // 元ファイル名
-    expect(mockSheetRows[0][10]).toBe(1);                  // カード番号1
-    expect(mockSheetRows[1][10]).toBe(2);                  // カード番号2
+    // カラム8=fileId, カラム9=元ファイル名, カラム10=ソースアカウント, カラム11=カード番号（0始まり配列）
+    expect(mockSheetRows[0][8]).toBe('id_cards.pdf');          // fileId
+    expect(mockSheetRows[0][9]).toBe('cards.pdf');              // 元ファイル名
+    expect(mockSheetRows[0][10]).toBe('uploader@example.com'); // ソースアカウント
+    expect(mockSheetRows[0][11]).toBe(1);                       // カード番号1
+    expect(mockSheetRows[1][11]).toBe(2);                       // カード番号2
   });
 
   test('抽出結果が空配列の場合はスキップしログを出力する', () => {
@@ -437,6 +440,75 @@ describe('processBusinessCards - 複数名刺バッチ書き込み', () => {
 
     expect(mockSheetRows.length).toBe(1);
     expect(mockSheetRows[0][1]).toBe('Z社');
+  });
+});
+
+// =========================================================
+// getFileMetadata テスト
+// =========================================================
+
+describe('getFileMetadata', () => {
+  let restoreConsole;
+
+  beforeEach(() => {
+    const mocks = setupGlobalMocks();
+    restoreConsole = mocks.restoreConsole;
+    loadCodeGs();
+  });
+
+  afterEach(() => { restoreConsole(); });
+
+  test('オーナーが存在する場合はメールアドレスを返す', () => {
+    const file = createMockFile('test.jpg', 'image/jpeg', null, 'owner@example.com');
+    const result = global.getFileMetadata(file);
+    expect(result.fileId).toBe('id_test.jpg');
+    expect(result.fileName).toBe('test.jpg');
+    expect(result.sourceAccount).toBe('owner@example.com');
+  });
+
+  test('オーナーがnull（共有ドライブ）でDriveサービス利用可能な場合はsharingUserを返す', () => {
+    const file = createMockFile('shared.pdf', 'application/pdf', null, null);
+    global.Drive = {
+      Files: {
+        get: jest.fn(() => ({ sharingUser: { emailAddress: 'sharer@example.com' } })),
+      },
+    };
+    const result = global.getFileMetadata(file);
+    expect(result.sourceAccount).toBe('sharer@example.com');
+  });
+
+  test('オーナーがnullでDriveサービスも利用不可の場合は取得不可を返す', () => {
+    const file = createMockFile('shared.pdf', 'application/pdf', null, null);
+    global.Drive = {
+      Files: {
+        get: jest.fn(() => { throw new Error('Drive API unavailable'); }),
+      },
+    };
+    const result = global.getFileMetadata(file);
+    expect(result.sourceAccount).toBe('取得不可');
+  });
+
+  test('オーナーがnullでsharingUserなしの場合は取得不可を返す', () => {
+    const file = createMockFile('shared.pdf', 'application/pdf', null, null);
+    global.Drive = {
+      Files: {
+        get: jest.fn(() => ({ sharingUser: null })),
+      },
+    };
+    const result = global.getFileMetadata(file);
+    expect(result.sourceAccount).toBe('取得不可');
+  });
+
+  test('getOwner()が例外を投げる場合は取得不可を返す', () => {
+    const file = {
+      getName: () => 'error.jpg',
+      getId: () => 'id_error',
+      getOwner: () => { throw new Error('Permission denied'); },
+    };
+    const result = global.getFileMetadata(file);
+    expect(result.fileId).toBe('id_error');
+    expect(result.fileName).toBe('error.jpg');
+    expect(result.sourceAccount).toBe('取得不可');
   });
 });
 
