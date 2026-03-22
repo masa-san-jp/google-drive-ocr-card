@@ -29,6 +29,57 @@ function sanitizeFileName(name) {
 }
 
 /**
+ * ファイルのメタデータ（ファイルID・元ファイル名・ソースアカウント）を取得する関数。
+ * 取得失敗時も処理を止めず、取得不可の値を返すフォールバック戦略を採用する。
+ *
+ * ソースアカウント取得の優先順位:
+ *   1. DriveApp: file.getOwner().getEmail()（マイドライブの場合）
+ *   2. Advanced Drive Service: Drive.Files.get() の sharingUser（共有ドライブの場合）
+ *   3. フォールバック: "取得不可"
+ *
+ * 注意: 共有ドライブではオーナーが存在せず、取得できるアカウント情報は
+ * 「ファイルを共有したユーザー」に限られるため、「アップロード者」とは限らない。
+ *
+ * @param {GoogleAppsScript.Drive.File} file - DriveApp.File オブジェクト
+ * @returns {{fileId: string, fileName: string, sourceAccount: string}}
+ */
+function getFileMetadata(file) {
+  var fileId = "";
+  var fileName = "";
+  var sourceAccount = "";
+
+  try {
+    fileId = file.getId();
+    fileName = file.getName();
+  } catch (e) {
+    console.error("ファイルID/名前の取得エラー: " + e.message);
+  }
+
+  try {
+    var owner = file.getOwner();
+    if (owner) {
+      // マイドライブ: オーナーのメールアドレスを取得
+      sourceAccount = owner.getEmail();
+    } else {
+      // 共有ドライブ: Advanced Drive Service でファイルを共有したユーザーを取得
+      try {
+        var meta = Drive.Files.get(fileId, { fields: 'sharingUser' });
+        sourceAccount = (meta.sharingUser && meta.sharingUser.emailAddress)
+          ? meta.sharingUser.emailAddress
+          : "取得不可";
+      } catch (e2) {
+        sourceAccount = "取得不可";
+      }
+    }
+  } catch (e) {
+    console.error("ソースアカウント取得エラー: " + e.message);
+    sourceAccount = "取得不可";
+  }
+
+  return { fileId: fileId, fileName: fileName, sourceAccount: sourceAccount };
+}
+
+/**
  * 処理のメイン関数：これを定期実行（トリガー）に設定します。
  */
 function processBusinessCards() {
@@ -43,13 +94,14 @@ function processBusinessCards() {
   
   // スプレッドシートが空の場合、1行目にヘッダーを作成する
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(["処理日時", "会社名", "部署・役職", "氏名", "メールアドレス", "電話番号", "住所", "画像URL", "ファイルID", "元ファイル名", "カード番号"]);
+    sheet.appendRow(["処理日時", "会社名", "部署・役職", "氏名", "メールアドレス", "電話番号", "住所", "画像URL", "ファイルID", "元ファイル名", "ソースアカウント", "カード番号"]);
     sheet.setFrozenRows(1);          // 1行目を固定
     sheet.setColumnWidth(1, 150);    // タイムスタンプ幅
     sheet.setColumnWidth(2, 200);    // 会社名幅
     sheet.setColumnWidth(4, 150);    // 氏名幅
     sheet.setColumnWidth(5, 200);    // メアド幅
     sheet.setColumnWidth(8, 300);    // 画像リンク幅
+    sheet.setColumnWidth(11, 200);   // ソースアカウント幅
   }
   
   // フォルダ内のすべてのファイルを取得
@@ -97,8 +149,7 @@ function processBusinessCards() {
           // バッチ書き込み用の二次元配列を構築
           const now = new Date();
           const fileUrl = file.getUrl();
-          const fileId = file.getId();
-          const originalName = file.getName();
+          const metadata = getFileMetadata(file);
           const batchRows = extractedList.map(function(extractedData, idx) {
             return [
               now,
@@ -109,8 +160,9 @@ function processBusinessCards() {
               extractedData.phone || "",
               extractedData.address || "",
               fileUrl,
-              fileId,
-              originalName,
+              metadata.fileId,
+              metadata.fileName,
+              metadata.sourceAccount,
               idx + 1
             ];
           });
@@ -119,12 +171,12 @@ function processBusinessCards() {
           const startRow = sheet.getLastRow() + 1;
           sheet.getRange(startRow, 1, batchRows.length, batchRows[0].length).setValues(batchRows);
           extractedCardCount += extractedList.length;
-          
+
           // ファイル名の変更処理（代表値として先頭の抽出結果を使用）
           const first = extractedList[0];
           const safeCompany = sanitizeFileName(first.company || "不明");
           const safeName = sanitizeFileName(first.name || "不明");
-          const extMatch = file.getName().match(/(\.[^.]+)$/);
+          const extMatch = metadata.fileName.match(/(\.[^.]+)$/);
           const ext = extMatch ? extMatch[1] : ""; // オリジナルの拡張子
           
           const newName = `[処理済] ${safeCompany}_${safeName}${ext}`;
