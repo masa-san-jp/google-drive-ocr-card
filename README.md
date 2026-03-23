@@ -35,7 +35,9 @@
 - **ファイル自動整理**：処理後のファイルを `[処理済] 会社名_氏名.拡張子` にリネームして処理済みフォルダへ移動
 - **定期自動実行**：GAS のタイムトリガーで設定した間隔（例：10 分おき）に自動処理
 - **HEIC/HEIF 対応**：iPhone で撮影した HEIC/HEIF 形式の画像も処理可能
-- **PDF 対応**：複数名刺を含む PDF から一括抽出
+- **PDF 対応**：複数名刺を含む PDF を処理でき、抽出された各名刺を 1 行ずつスプレッドシートに登録
+- **出力正規化**：画像・PDF ともに抽出結果を配列形式に統一し、安定した複数件処理を実現
+- **トレース列**：ファイル ID・元ファイル名・カード番号・ソースアカウントをシートに記録
 
 ## スプレッドシートの列構成
 
@@ -82,6 +84,7 @@ google-drive-ocr-card/
    - `02_処理済み名刺`（処理後のファイル移動先）
 
 2. **Google スプレッドシートを作成する**
+   > スクリプトが初回実行時に A〜L 列のヘッダーを自動作成します。K 列（ソースアカウント）はマイドライブではオーナーのメールアドレスを、共有ドライブでは共有者のメールアドレスを表示しますが、実際のアップロード者と異なる場合があります。
 
 3. **Gemini API キーを取得する**
    - [Google AI Studio](https://aistudio.google.com/) で発行する
@@ -118,9 +121,13 @@ google-drive-ocr-card/
 | ✅ 対応済み | 処理件数上限 | `MAX_FILES_PER_RUN`（デフォルト 10 件）による上限制御を実装済み |
 | ❌ 未対応 | 設計書整合 | 設計仕様書（7 モジュール・4 フォルダ構成）と実装（3 関数・2 フォルダ）の乖離 |
 | ✅ 対応済み | テスト | Jest によるユニットテストを追加（タイムアウト・処理件数上限・sanitizeFileName 等） |
-| ❌ 未対応 | パフォーマンス | `appendRow` 逐次実行（一括書き込みへの移行が必要） |
+| ✅ 対応済み | パフォーマンス | `appendRow` 逐次実行から `setValues` 一括書き込みへ変更済み |
 | ❌ 未対応 | 抽出失敗記録 | OCR 抽出失敗時のスプレッドシート記録とエラーフォルダへの退避が未実装 |
 | ❌ 未対応 | 関数分割 | `processBusinessCards` の責務過多（100 行超の単一関数） |
+| ✅ 対応済み | PDF 複数名刺 | 同一 PDF 内の複数名刺を 1 枚ずつ別行としてシートに書き込む |
+| ✅ 対応済み | 出力正規化 | `extractWithGemini()` が画像・PDF ともに必ず配列を返すよう正規化済み |
+| ✅ 対応済み | トレース列 | ファイル ID（I列）・元ファイル名（J列）・カード番号（L列）を追加 |
+| ✅ 対応済み | ソースアカウント | K 列にソースアカウント情報を追加（制約あり） |
 
 ## 将来展望
 
@@ -169,7 +176,9 @@ Take a photo of a business card with your smartphone, upload it to a Google Driv
 - **Automatic file organization**: Renames processed files to `[処理済] CompanyName_PersonName.ext` and moves them to the processed folder
 - **Scheduled execution**: Runs automatically at a set interval (e.g. every 10 minutes) via GAS time triggers
 - **HEIC/HEIF support**: Processes images taken with iPhone in HEIC/HEIF format
-- **PDF support**: Bulk extraction from PDFs containing multiple business cards
+- **Multi-card PDF support**: PDFs containing multiple business cards are processed and each extracted card is written as a separate spreadsheet row
+- **Output normalization**: Extraction results from both images and PDFs are normalized to a consistent array format, ensuring reliable multi-card handling
+- **Tracking columns**: File ID, original filename, card number, and source account are recorded in the spreadsheet (columns I–L)
 
 ## Spreadsheet Column Layout
 
@@ -216,6 +225,7 @@ See [`docs/setup_guide.md`](docs/setup_guide.md) for detailed instructions.
    - `02_処理済み名刺` — destination for processed files
 
 2. **Create a Google Spreadsheet**
+   > The script automatically creates column headers A–L on first run. Column K (Source account) shows the file owner's email for My Drive files or the sharing user's email for shared drives — this may differ from the actual uploader.
 
 3. **Get a Gemini API key**
    - Generate one at [Google AI Studio](https://aistudio.google.com/)
@@ -252,9 +262,13 @@ Two code reviews have been conducted (see `docs/code_review.md` and `docs/review
 | ✅ Done | File count limit | `MAX_FILES_PER_RUN` cap (default: 10 files) implemented |
 | ❌ Pending | Design alignment | Gap between spec (7 modules, 4 folders) and implementation (3 functions, 2 folders) |
 | ✅ Done | Tests | Jest unit tests added (timeout guard, file count limit, sanitizeFileName, etc.) |
-| ❌ Pending | Performance | `appendRow` called per card — should be batched with `setValues` |
+| ✅ Done | Performance | Batched writes with `setValues` implemented (replaces per-card `appendRow`) |
 | ❌ Pending | Failure logging | OCR failures not recorded in the spreadsheet; failed files not moved to an error folder |
 | ❌ Pending | Refactoring | `processBusinessCards` has 9+ responsibilities in a single 100-line function |
+| ✅ Done | Multi-card PDF | Multiple cards extracted from a single PDF are written as separate spreadsheet rows |
+| ✅ Done | Response normalization | `extractWithGemini()` always returns a normalized array for both images and PDFs |
+| ✅ Done | Tracking columns | File ID (col I), original filename (col J), and card number (col L) added |
+| ✅ Done | Source account | Column K records source account info (with limitations — see column layout note) |
 
 ## Future Plans
 
