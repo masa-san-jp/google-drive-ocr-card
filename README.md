@@ -37,7 +37,7 @@
 - **HEIC/HEIF 対応**：iPhone で撮影した HEIC/HEIF 形式の画像も処理可能
 - **PDF 対応**：複数名刺を含む PDF を処理でき、抽出された各名刺を 1 行ずつスプレッドシートに登録
 - **出力正規化**：画像・PDF ともに抽出結果を配列形式に統一し、安定した複数件処理を実現
-- **トレース列**：ファイル ID・元ファイル名・カード番号・ソースアカウントをシートに記録
+- **トレース列**：ソースアカウントをシートに記録
 
 ## スプレッドシートの列構成
 
@@ -51,10 +51,7 @@
 | F | 電話番号 | OCR 抽出値 |
 | G | 住所 | OCR 抽出値 |
 | H | 画像 URL | Drive ファイルの URL |
-| I | ファイル ID | Drive ファイルの一意 ID |
-| J | 元ファイル名 | 処理前のオリジナルファイル名 |
-| K | ソースアカウント | ファイルに関連付けられた Google アカウント（※制約あり） |
-| L | カード番号 | 1 ファイル内での名刺の連番（1 始まり） |
+| I | ソースアカウント | ファイルに関連付けられた Google アカウント（※制約あり） |
 
 > **ソースアカウントの制約**: マイドライブの場合はファイルオーナーのメールアドレスを取得します。共有ドライブの場合はファイルを共有したユーザーのアドレスを取得しますが、実際のアップロード者と一致しない場合があります。取得できない場合は「取得不可」と表示されます。
 
@@ -84,7 +81,7 @@ google-drive-ocr-card/
    - `02_処理済み名刺`（処理後のファイル移動先）
 
 2. **Google スプレッドシートを作成する**
-   > スクリプトが初回実行時に A〜L 列のヘッダーを自動作成します。K 列（ソースアカウント）はマイドライブではオーナーのメールアドレスを、共有ドライブでは共有者のメールアドレスを表示しますが、実際のアップロード者と異なる場合があります。
+   > スクリプトが初回実行時に A〜I 列のヘッダーを自動作成します。I 列（ソースアカウント）はマイドライブではオーナーのメールアドレスを、共有ドライブでは共有者のメールアドレスを表示しますが、実際のアップロード者と異なる場合があります。
 
 3. **Gemini API キーを取得する**
    - [Google AI Studio](https://aistudio.google.com/) で発行する
@@ -126,8 +123,8 @@ google-drive-ocr-card/
 | ❌ 未対応 | 関数分割 | `processBusinessCards` の責務過多（100 行超の単一関数） |
 | ✅ 対応済み | PDF 複数名刺 | 同一 PDF 内の複数名刺を 1 枚ずつ別行としてシートに書き込む |
 | ✅ 対応済み | 出力正規化 | `extractWithGemini()` が画像・PDF ともに必ず配列を返すよう正規化済み |
-| ✅ 対応済み | トレース列 | ファイル ID（I列）・元ファイル名（J列）・カード番号（L列）を追加 |
-| ✅ 対応済み | ソースアカウント | K 列にソースアカウント情報を追加（制約あり） |
+| ✅ 対応済み | トレース列 | ソースアカウント（I列）を追加 |
+| ✅ 対応済み | ソースアカウント | I 列にソースアカウント情報を追加（制約あり） |
 
 ## 将来展望
 
@@ -178,7 +175,7 @@ Take a photo of a business card with your smartphone, upload it to a Google Driv
 - **HEIC/HEIF support**: Processes images taken with iPhone in HEIC/HEIF format
 - **Multi-card PDF support**: PDFs containing multiple business cards are processed and each extracted card is written as a separate spreadsheet row
 - **Output normalization**: Extraction results from both images and PDFs are normalized to a consistent array format, ensuring reliable multi-card handling
-- **Tracking columns**: File ID, original filename, card number, and source account are recorded in the spreadsheet (columns I–L)
+- **Tracking columns**: Source account is recorded in the spreadsheet (column I)
 
 ## Spreadsheet Column Layout
 
@@ -192,10 +189,7 @@ Take a photo of a business card with your smartphone, upload it to a Google Driv
 | F | Phone number | OCR-extracted value |
 | G | Address | OCR-extracted value |
 | H | Image URL | Drive file URL |
-| I | File ID | Unique Drive file ID |
-| J | Original filename | Filename before processing |
-| K | Source account | Google account linked to the file (see note below) |
-| L | Card number | Sequential card number within the file (1-based) |
+| I | Source account | Google account linked to the file (see note below) |
 
 > **Source account note**: For files in My Drive, this is the file owner's email address. For shared drives, it is the email of the user who shared the file, which may not be the actual uploader. Displays "取得不可" (unavailable) when the account cannot be retrieved.
 
@@ -225,7 +219,7 @@ See [`docs/setup_guide.md`](docs/setup_guide.md) for detailed instructions.
    - `02_処理済み名刺` — destination for processed files
 
 2. **Create a Google Spreadsheet**
-   > The script automatically creates column headers A–L on first run. Column K (Source account) shows the file owner's email for My Drive files or the sharing user's email for shared drives — this may differ from the actual uploader.
+   > The script automatically creates column headers A–I on first run. Column I (Source account) shows the file owner's email for My Drive files or the sharing user's email for shared drives — this may differ from the actual uploader.
 
 3. **Get a Gemini API key**
    - Generate one at [Google AI Studio](https://aistudio.google.com/)
@@ -267,8 +261,8 @@ Two code reviews have been conducted (see `docs/code_review.md` and `docs/review
 | ❌ Pending | Refactoring | `processBusinessCards` has 9+ responsibilities in a single 100-line function |
 | ✅ Done | Multi-card PDF | Multiple cards extracted from a single PDF are written as separate spreadsheet rows |
 | ✅ Done | Response normalization | `extractWithGemini()` always returns a normalized array for both images and PDFs |
-| ✅ Done | Tracking columns | File ID (col I), original filename (col J), and card number (col L) added |
-| ✅ Done | Source account | Column K records source account info (with limitations — see column layout note) |
+| ✅ Done | Tracking columns | Source account (col I) added |
+| ✅ Done | Source account | Column I records source account info (with limitations — see column layout note) |
 
 ## Future Plans
 
