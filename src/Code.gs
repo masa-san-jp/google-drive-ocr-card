@@ -94,14 +94,14 @@ function processBusinessCards() {
   
   // スプレッドシートが空の場合、1行目にヘッダーを作成する
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(["処理日時", "会社名", "部署・役職", "氏名", "メールアドレス", "電話番号", "住所", "画像URL", "ファイルID", "元ファイル名", "ソースアカウント", "カード番号"]);
+    sheet.appendRow(["処理日時", "会社名", "部署・役職", "氏名", "メールアドレス", "電話番号", "住所", "画像URL", "ソースアカウント"]);
     sheet.setFrozenRows(1);          // 1行目を固定
     sheet.setColumnWidth(1, 150);    // タイムスタンプ幅
     sheet.setColumnWidth(2, 200);    // 会社名幅
     sheet.setColumnWidth(4, 150);    // 氏名幅
     sheet.setColumnWidth(5, 200);    // メアド幅
     sheet.setColumnWidth(8, 300);    // 画像リンク幅
-    sheet.setColumnWidth(11, 200);   // ソースアカウント幅
+    sheet.setColumnWidth(9, 200);    // ソースアカウント幅
   }
   
   // フォルダ内のすべてのファイルを取得
@@ -150,7 +150,7 @@ function processBusinessCards() {
           const now = new Date();
           const fileUrl = file.getUrl();
           const metadata = getFileMetadata(file);
-          const batchRows = extractedList.map(function(extractedData, idx) {
+          const batchRows = extractedList.map(function(extractedData) {
             return [
               now,
               extractedData.company || "",
@@ -160,10 +160,7 @@ function processBusinessCards() {
               extractedData.phone || "",
               extractedData.address || "",
               fileUrl,
-              metadata.fileId,
-              metadata.fileName,
-              metadata.sourceAccount,
-              idx + 1
+              metadata.sourceAccount
             ];
           });
 

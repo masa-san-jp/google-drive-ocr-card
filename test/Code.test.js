@@ -397,7 +397,7 @@ describe('processBusinessCards - 複数名刺バッチ書き込み', () => {
     expect(mockSheetRows[2][1]).toBe('C社');
   });
 
-  test('バッチ書き込みにトラッキングカラム（fileId, 元ファイル名, ソースアカウント, カード番号）が含まれる', () => {
+  test('バッチ書き込みにソースアカウントカラムが含まれる', () => {
     const twoCards = [
       { company: 'X社', name: '山田 一郎' },
       { company: 'Y社', name: '山田 二郎' },
@@ -409,12 +409,9 @@ describe('processBusinessCards - 複数名刺バッチ書き込み', () => {
 
     global.processBusinessCards();
 
-    // カラム8=fileId, カラム9=元ファイル名, カラム10=ソースアカウント, カラム11=カード番号（0始まり配列）
-    expect(mockSheetRows[0][8]).toBe('id_cards.pdf');          // fileId
-    expect(mockSheetRows[0][9]).toBe('cards.pdf');              // 元ファイル名
-    expect(mockSheetRows[0][10]).toBe('uploader@example.com'); // ソースアカウント
-    expect(mockSheetRows[0][11]).toBe(1);                       // カード番号1
-    expect(mockSheetRows[1][11]).toBe(2);                       // カード番号2
+    // カラム8=ソースアカウント（0始まり配列）
+    expect(mockSheetRows[0][8]).toBe('uploader@example.com'); // ソースアカウント
+    expect(mockSheetRows[1][8]).toBe('uploader@example.com'); // ソースアカウント
   });
 
   test('抽出結果が空配列の場合はスキップしログを出力する', () => {
