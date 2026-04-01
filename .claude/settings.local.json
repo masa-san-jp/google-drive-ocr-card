@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: implement Phase 1 critical fixes\n\nCritical fixes \\(P0\\):\n- Change API authentication to header-based \\(x-goog-api-key\\)\n- Sanitize Gemini API error messages to prevent info leakage\n- Implement timeout safety mechanism \\(4.5 min threshold\\)\n- Add 4-folder structure for file lifecycle management\n- Add duplicate file check for 02_OCR_IN_PROGRESS folder\n\nHigh priority fixes \\(P1\\):\n- Move API key retrieval outside loop \\(1x instead of Nx\\)\n- Add comprehensive error file evacuation to review folder\n\nDocumentation updates:\n- Update setup_guide.md for 4-folder configuration\n- Create test_scenarios_phase1.md with 8 test cases\nEOF\n\\)\")",
+      "Bash(git show:*)",
+      "Bash(git diff-tree:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
