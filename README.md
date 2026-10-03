@@ -299,3 +299,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## 設計の考え方
+
+名刺を撮影・投入する入口と、一覧として確認するスプレッドシートをつなぎ、転記とファイル整理を減らす構成です。[実装](src/Code.gs)は処理件数・実行時間に上限を設け、1件の失敗で全体を止めないようにしています。これはGASの定期バッチで扱うための設計上の区切りです。
+
+抽出値と元画像URLを同じ行に残すため、OCRの結果は元画像へ戻って確認できます。自動登録は内容の正確さを保証するものではなく、特に氏名・メールアドレスなどは利用前に確認が必要です。名刺画像はGemini APIへ送られるため、単なるDrive内の整理とは区別し、送信できる資料かと共有範囲を確認してください。失敗記録・退避などの未対応部分は上記レビュー表のとおりです。
+
